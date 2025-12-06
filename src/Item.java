@@ -7,6 +7,11 @@ public class Item {
         this.type = type;
     }
 
-    public String getName() { return name; } // getter for name
-    public ItemType getType() { return type; } // getter for type
+    public String getName() {
+        return name;
+    }
+
+    public ItemType getType() {
+        return type;
+    }
 }

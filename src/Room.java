@@ -8,7 +8,6 @@ public class Room {
     private boolean visited = false;
     private Item hiddenItem = null;
 
-    // Now each direction has a counter: 0 or 1
     private Map<Direction, Integer> doors = new EnumMap<>(Direction.class);
 
     public void addPlayer(Player p) {
@@ -43,12 +42,10 @@ public class Room {
         doors = d;
     }
 
-    // Can move only when counter = 1
     public boolean canMove(Direction d) {
         return doors.getOrDefault(d, 0) > 0;
     }
 
-    // Decrease the counter after use
     public void consumeDoor(Direction d) {
         doors.put(d, 0);
     }

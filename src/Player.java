@@ -10,15 +10,37 @@ public class Player {
         this.name = name;
     }
 
-    public String getName() { return name; }
-    public int getX() { return x; }
-    public int getY() { return y; }
-    public int getLives() { return lives; }
-    public List<Item> getInventory() { return inventory; }
+    public String getName() {
+        return name;
+    }
 
-    public void addItem(Item i) { inventory.add(i); }
-    public void addLife(int n) { lives += n; }
-    public void loseLife(int n) { lives -= n; }
+    public int getX() {
+        return x;
+    }
+
+    public int getY() {
+        return y;
+    }
+
+    public int getLives() {
+        return lives;
+    }
+
+    public List<Item> getInventory() {
+        return inventory;
+    }
+
+    public void addItem(Item i) {
+        inventory.add(i);
+    }
+
+    public void addLife(int n) {
+        lives += n;
+    }
+
+    public void loseLife(int n) {
+        lives -= n;
+    }
 
     public boolean move(Direction d) {
         switch(d) {
@@ -30,7 +52,7 @@ public class Player {
         return true;
     }
 
-    // New methods for LifeBoost sharing
+
     public int getLifeBoostCount() {
         int count = 0;
         for (Item i : inventory)

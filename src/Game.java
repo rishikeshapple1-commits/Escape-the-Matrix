@@ -7,8 +7,7 @@ public class Game {
     private List<Player> players = new ArrayList<>();
     private int roundsLeft = 12;
     private final Scanner sc = new Scanner(System.in);
-
-    // This map stores the door counters for the current round 
+    
     private Map<Direction, Integer> roundDoors = new EnumMap<>(Direction.class);
 
     public Game() {
@@ -24,7 +23,7 @@ public class Game {
         players.add(new Player("P1"));
         players.add(new Player("P2"));
         players.add(new Player("P3"));
-// Place hidden items in random rooms
+
         Random rnd = new Random();
         int toPlace = 3;
         int placed = 0;
@@ -75,8 +74,7 @@ public class Game {
 
         Random r = new Random();
         boolean atStart = players.stream().allMatch(p -> p.getX() == 0 && p.getY() == 0);
-
-        // Reset doors
+        
         roundDoors.clear();
 
         if (atStart) {
@@ -85,7 +83,6 @@ public class Game {
             roundDoors.put(Direction.EAST, r.nextBoolean() ? 1 : 0);
             roundDoors.put(Direction.SOUTH, r.nextBoolean() ? 1 : 0);
         } else {
-            // Ensure at least one direction = 1
             boolean ok = false;
             while (!ok) {
                 for (Direction d : Direction.values())
@@ -96,7 +93,6 @@ public class Game {
             }
         }
 
-        // Apply to all rooms 
         for (int i = 0; i < SIZE; i++)
             for (int j = 0; j < SIZE; j++)
                 grid[i][j].setDoors(new EnumMap<>(roundDoors));
@@ -139,7 +135,6 @@ public class Game {
                     p.getName(), p.getLives(), p.getInventory().size(), p.getLifeBoostCount());
     }
 
-    // Process a single command
     private void processCommand(String input) {
         String[] parts = input.split("\\s+");
         if (parts.length == 0) return;
@@ -178,6 +173,11 @@ public class Game {
             return;
         }
 
+        if (p.getLives() <= 0) {
+            System.out.println(p.getName() + " has no lives left and cannot move.");
+            return;
+        }
+
         Direction d;
         try {
             d = Direction.valueOf(dirText.toUpperCase());
@@ -199,10 +199,8 @@ public class Game {
             return;
         }
 
-        // Deduct globally
         roundDoors.put(d, 0);
 
-        // Apply deduction to all rooms
         for (int i = 0; i < SIZE; i++)
             for (int j = 0; j < SIZE; j++)
                 grid[i][j].consumeDoor(d);
@@ -211,6 +209,18 @@ public class Game {
 
         Room newRoom = grid[p.getX()][p.getY()];
         newRoom.addPlayer(p);
+
+        Item item = newRoom.getHiddenItem();
+        if (item != null) {
+            if (item.getType() == ItemType.PENALTY) {
+                p.loseLife(1);
+                System.out.println("TRAP! " + p.getName() + " found a Penalty and lost 1 life.");
+            } else if (item.getType() == ItemType.LIFE_BOOST) {
+                p.addItem(item);
+                System.out.println("LUCKY! " + p.getName() + " found a LifeBoost! Added to inventory.");
+            }
+            newRoom.removeHiddenItem();
+        }
 
         if (newRoom.isVisited()) {
             if (newRoom.getPlayers().size() == 1) {
