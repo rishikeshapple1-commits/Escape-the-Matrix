@@ -150,7 +150,7 @@ public class Game {
      * Also prints player statuses.
      */
     public void printGrid() {
-        final int CELL_WIDTH = 8;
+        final int CELL_WIDTH = 8; // content width (inside brackets)
 
         System.out.println("Current Grid:");
         for (int i = 0; i < SIZE; i++) {
@@ -167,15 +167,18 @@ public class Game {
 
                 if (i == SIZE - 1 && j == SIZE - 1) {
                     // Special case for exit room
-                    if (!names.isEmpty()) row.append("[").append(String.join(",", names)).append(",E]");
-                    else row.append("[ E ]");
+                    cellContent = names.isEmpty()
+                            ? "EXIT"
+                            : String.join(",", names) + ", EXIT";
                 } else if (!names.isEmpty()) {
                     cellContent = String.join(",", names);
                 }
 
-                if (cellContent.length() > CELL_WIDTH)
+                // Trim if too long
+                if (cellContent.length() > CELL_WIDTH) {
                     cellContent = cellContent.substring(0, CELL_WIDTH);
-
+                }
+                // Pad to fixed width
                 cellContent = String.format("%-" + CELL_WIDTH + "s", cellContent);
 
                 row.append("[").append(cellContent).append("]");
@@ -185,9 +188,10 @@ public class Game {
         }
 
         System.out.println("--- STATUS ---");
-        for (Player p : players)
+        for (Player p : players) {
             System.out.printf("%s: Lives=%d Inventory=%d LifeBoosts=%d%n",
                     p.getName(), p.getLives(), p.getInventory().size(), p.getLifeBoostCount());
+        }
     }
 
     /**
@@ -271,14 +275,11 @@ public class Game {
 
         // Deduct door globally and update all rooms
         roundDoors.put(d, 0);
-        for (int i = 0; i < SIZE; i++)
-            for (int j = 0; j < SIZE; j++)
-
-                for (int i = 0; i < SIZE; i++) {
-                    for (int j = 0; j < SIZE; j++) {
-                        grid[i][j].consumeDoor(d);
-                    }
-                }
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                grid[i][j].consumeDoor(d);
+            }
+        }
 
         current.removePlayer(p);
 
