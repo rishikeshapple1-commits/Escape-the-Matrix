@@ -7,7 +7,7 @@ public class Game {
     private List<Player> players = new ArrayList<>();
     private int roundsLeft = 12;
     private final Scanner sc = new Scanner(System.in);
-    
+
     private Map<Direction, Integer> roundDoors = new EnumMap<>(Direction.class);
 
     public Game() {
@@ -74,7 +74,7 @@ public class Game {
 
         Random r = new Random();
         boolean atStart = players.stream().allMatch(p -> p.getX() == 0 && p.getY() == 0);
-        
+
         roundDoors.clear();
 
         if (atStart) {
@@ -98,35 +98,43 @@ public class Game {
                 grid[i][j].setDoors(new EnumMap<>(roundDoors));
 
         System.out.println("----- NEW ROUND -----");
-        System.out.println("Rounds left: " + roundsLeft);
-        System.out.printf("Door availability: N=%d E=%d S=%d W=%d%n",
-                roundDoors.get(Direction.NORTH),
-                roundDoors.get(Direction.EAST),
-                roundDoors.get(Direction.SOUTH),
-                roundDoors.get(Direction.WEST));
-
+        printRoundUpdate();
         printGrid();
     }
 
     public void printGrid() {
+        final int CELL_WIDTH = 8;
+
         System.out.println("Current Grid:");
         for (int i = 0; i < SIZE; i++) {
             StringBuilder row = new StringBuilder();
+
             for (int j = 0; j < SIZE; j++) {
                 List<String> names = new ArrayList<>();
-                for (Player p : players)
-                    if (p.getX() == i && p.getY() == j) names.add(p.getName());
+                for (Player p : players) {
+                    if (p.getX() == i && p.getY() == j) {
+                        names.add(p.getName());
+                    }
+                }
+                String cellContent = "";
 
                 if (i == SIZE - 1 && j == SIZE - 1) {
-                    if (!names.isEmpty()) row.append("[").append(String.join(",", names)).append(",E]");
-                    else row.append("[ E ]");
+                    cellContent = names.isEmpty()
+                            ? "EXIT"
+                            : String.join(",", names) + ",EXIT";
                 } else if (!names.isEmpty()) {
-                    row.append("[").append(String.join(",", names)).append("]");
-                } else {
-                    row.append("[     ]");
+                    cellContent = String.join(",", names);
                 }
+
+                if (cellContent.length() > CELL_WIDTH)
+                    cellContent = cellContent.substring(0, CELL_WIDTH);
+
+                cellContent = String.format("%-" + CELL_WIDTH + "s", cellContent);
+
+                row.append("[").append(cellContent).append("]");
             }
-            System.out.println(row.toString());
+
+            System.out.println(row);
         }
 
         System.out.println("--- STATUS ---");
@@ -134,6 +142,7 @@ public class Game {
             System.out.printf("%s: Lives=%d Inventory=%d LifeBoosts=%d%n",
                     p.getName(), p.getLives(), p.getInventory().size(), p.getLifeBoostCount());
     }
+
 
     private void processCommand(String input) {
         String[] parts = input.split("\\s+");
@@ -201,9 +210,11 @@ public class Game {
 
         roundDoors.put(d, 0);
 
-        for (int i = 0; i < SIZE; i++)
-            for (int j = 0; j < SIZE; j++)
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
                 grid[i][j].consumeDoor(d);
+            }
+        }
 
         current.removePlayer(p);
 
@@ -232,6 +243,7 @@ public class Game {
         newRoom.setVisited(true);
 
         System.out.println(p.getName() + " moved " + d + ".");
+        printRoundUpdate();
         printGrid();
     }
 
@@ -254,5 +266,14 @@ public class Game {
 
     private boolean checkLose() {
         return players.stream().allMatch(p -> p.getLives() <= 0);
+    }
+
+    public void printRoundUpdate() {
+        System.out.println("Rounds left: " + roundsLeft);
+        System.out.printf("Door availability: N=%d E=%d S=%d W=%d%n",
+                roundDoors.get(Direction.NORTH),
+                roundDoors.get(Direction.EAST),
+                roundDoors.get(Direction.SOUTH),
+                roundDoors.get(Direction.WEST));
     }
 }
