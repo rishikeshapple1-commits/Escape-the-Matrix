@@ -1,16 +1,45 @@
 import java.util.*;
 
+/**
+ * The main game class for "Escape-the-Matrix", a grid-based adventure game.
+ * Manages the game state, including the grid of rooms, players, rounds, and user commands.
+ * Players must navigate from the start to the exit while managing lives and collecting items.
+ */
 public class Game {
+    /**
+     * The size of the square grid (5x5).
+     */
     private static final int SIZE = 5;
 
+    /**
+     * The 2D grid of rooms representing the game board.
+     */
     private Room[][] grid = new Room[SIZE][SIZE];
+    /**
+     * The list of players participating in the game.
+     */
     private List<Player> players = new ArrayList<>();
+    /**
+     * The number of rounds remaining in the game.
+     */
     private int roundsLeft = 12;
+    /**
+     * Scanner for reading user input from the console.
+     */
     private final Scanner sc = new Scanner(System.in);
 
+    /**
+     * Map storing the door availability counters for each direction in the current round.
+     * Values are 0 (unavailable) or 1 (available), and are decremented when a move is made.
+     */
     private Map<Direction, Integer> roundDoors = new EnumMap<>(Direction.class);
 
+    /**
+     * Constructor for the Game class.
+     * Initializes the grid with rooms, places hidden items randomly, and positions all players at the start.
+     */
     public Game() {
+        // Initialize grid with default rooms and doors
         for (int i = 0; i < SIZE; i++) {
             for (int j = 0; j < SIZE; j++) {
                 grid[i][j] = new Room();
@@ -20,30 +49,36 @@ public class Game {
             }
         }
 
+        // Add players
         players.add(new Player("P1"));
         players.add(new Player("P2"));
         players.add(new Player("P3"));
 
+        // Place hidden items in random rooms, avoiding start and exit
         Random rnd = new Random();
         int toPlace = 3;
         int placed = 0;
         while (placed < toPlace) {
             int rx = rnd.nextInt(SIZE);
             int ry = rnd.nextInt(SIZE);
-            if ((rx == 0 && ry == 0) || (rx == SIZE - 1 && ry == SIZE - 1)) continue;
-            if (grid[rx][ry].getHiddenItem() != null) continue;
+            if ((rx == 0 && ry == 0) || (rx == SIZE - 1 && ry == SIZE - 1)) continue; // Skip start and exit
+            if (grid[rx][ry].getHiddenItem() != null) continue; // Ensure no duplicate items
             ItemType t = rnd.nextBoolean() ? ItemType.LIFE_BOOST : ItemType.PENALTY;
             String name = t == ItemType.LIFE_BOOST ? "LifeBoost" : "Penalty";
             grid[rx][ry].setHiddenItem(new Item(name, t));
             placed++;
         }
 
+        // Place all players at start and mark as visited
         for (Player p : players) grid[0][0].addPlayer(p);
         grid[0][0].setVisited(true);
     }
 
+    /**
+     * Starts the game loop, handling rounds and user commands until win, loss, or exit.
+     */
     public void start() {
-        System.out.println("Welcome to Possible Futures Multiplayer!");
+        System.out.println("Welcome to Escape-the-Matrix!");
         System.out.println("Type 'help' for commands.");
         while (roundsLeft > 0) {
             newRound();
@@ -69,20 +104,27 @@ public class Game {
         System.out.println("No rounds remaining. YOU LOSE!");
     }
 
+    /**
+     * Initializes a new round by decrementing rounds left, resetting door availability,
+     * and printing the grid and status.
+     */
     private void newRound() {
         roundsLeft--;
 
         Random r = new Random();
         boolean atStart = players.stream().allMatch(p -> p.getX() == 0 && p.getY() == 0);
 
+        // Reset doors based on position
         roundDoors.clear();
 
         if (atStart) {
+            // At start: North and West blocked, East/South random
             roundDoors.put(Direction.NORTH, 0);
             roundDoors.put(Direction.WEST, 0);
             roundDoors.put(Direction.EAST, r.nextBoolean() ? 1 : 0);
             roundDoors.put(Direction.SOUTH, r.nextBoolean() ? 1 : 0);
         } else {
+            // Elsewhere: Random, but ensure at least one direction is available
             boolean ok = false;
             while (!ok) {
                 for (Direction d : Direction.values())
@@ -93,6 +135,7 @@ public class Game {
             }
         }
 
+        // Apply door settings to all rooms
         for (int i = 0; i < SIZE; i++)
             for (int j = 0; j < SIZE; j++)
                 grid[i][j].setDoors(new EnumMap<>(roundDoors));
@@ -102,6 +145,10 @@ public class Game {
         printGrid();
     }
 
+    /**
+     * Prints the current state of the grid, showing player positions and the exit.
+     * Also prints player statuses.
+     */
     public void printGrid() {
         final int CELL_WIDTH = 8;
 
@@ -119,9 +166,9 @@ public class Game {
                 String cellContent = "";
 
                 if (i == SIZE - 1 && j == SIZE - 1) {
-                    cellContent = names.isEmpty()
-                            ? "EXIT"
-                            : String.join(",", names) + ",EXIT";
+                    // Special case for exit room
+                    if (!names.isEmpty()) row.append("[").append(String.join(",", names)).append(",E]");
+                    else row.append("[ E ]");
                 } else if (!names.isEmpty()) {
                     cellContent = String.join(",", names);
                 }
@@ -143,7 +190,11 @@ public class Game {
                     p.getName(), p.getLives(), p.getInventory().size(), p.getLifeBoostCount());
     }
 
-
+    /**
+     * Processes a user command input string.
+     *
+     * @param input the command string to process
+     */
     private void processCommand(String input) {
         String[] parts = input.split("\\s+");
         if (parts.length == 0) return;
@@ -168,6 +219,9 @@ public class Game {
         }
     }
 
+    /**
+     * Prints the list of available commands.
+     */
     private void printHelp() {
         System.out.println("Commands:");
         System.out.println("  go P# <north|east|south|west>");
@@ -175,6 +229,13 @@ public class Game {
         System.out.println("  help");
     }
 
+    /**
+     * Handles the "go" command to move a player in a specified direction.
+     * Checks validity, updates positions, deducts doors, applies penalties, and handles items.
+     *
+     * @param playerName the name of the player (e.g., "P1")
+     * @param dirText    the direction string (north, east, south, west)
+     */
     private void handleGo(String playerName, String dirText) {
         Player p = getPlayer(playerName);
         if (p == null) {
@@ -208,19 +269,23 @@ public class Game {
             return;
         }
 
+        // Deduct door globally and update all rooms
         roundDoors.put(d, 0);
+        for (int i = 0; i < SIZE; i++)
+            for (int j = 0; j < SIZE; j++)
 
-        for (int i = 0; i < SIZE; i++) {
-            for (int j = 0; j < SIZE; j++) {
-                grid[i][j].consumeDoor(d);
-            }
-        }
+                for (int i = 0; i < SIZE; i++) {
+                    for (int j = 0; j < SIZE; j++) {
+                        grid[i][j].consumeDoor(d);
+                    }
+                }
 
         current.removePlayer(p);
 
         Room newRoom = grid[p.getX()][p.getY()];
         newRoom.addPlayer(p);
 
+        // Check for hidden item in the new room
         Item item = newRoom.getHiddenItem();
         if (item != null) {
             if (item.getType() == ItemType.PENALTY) {
@@ -233,6 +298,7 @@ public class Game {
             newRoom.removeHiddenItem();
         }
 
+        // Penalty for revisiting a room alone
         if (newRoom.isVisited()) {
             if (newRoom.getPlayers().size() == 1) {
                 p.loseLife(1);
@@ -247,6 +313,12 @@ public class Game {
         printGrid();
     }
 
+    /**
+     * Retrieves a player by name (case-insensitive).
+     *
+     * @param name the player's name
+     * @return the Player object, or null if not found
+     */
     private Player getPlayer(String name) {
         for (Player p : players)
             if (p.getName().equalsIgnoreCase(name))
@@ -254,6 +326,11 @@ public class Game {
         return null;
     }
 
+    /**
+     * Checks if any player has reached the exit, triggering a win condition.
+     *
+     * @return true if a player won, false otherwise
+     */
     private boolean checkWin() {
         for (Player p : players) {
             if (p.getX() == SIZE - 1 && p.getY() == SIZE - 1) {
@@ -264,10 +341,20 @@ public class Game {
         return false;
     }
 
+    /**
+     * Checks if all players have lost all lives, triggering a loss condition.
+     *
+     * @return true if all players lost, false otherwise
+     */
     private boolean checkLose() {
         return players.stream().allMatch(p -> p.getLives() <= 0);
     }
 
+    /**
+     * Prints the current round information and door availability status.
+     * Shows the number of rounds remaining and which doors (North, East, South, West)
+     * are available for movement in the current round.
+     */
     public void printRoundUpdate() {
         System.out.println("Rounds left: " + roundsLeft);
         System.out.printf("Door availability: N=%d E=%d S=%d W=%d%n",

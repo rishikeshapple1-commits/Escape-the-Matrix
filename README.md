@@ -1,4 +1,4 @@
-# Escape The Matrix / Possible Futures Multiplayer
+# Escape-the-Matrix
 
 A console-based strategy game developed as a university final project.
 
